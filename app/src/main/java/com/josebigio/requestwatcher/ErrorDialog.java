@@ -11,6 +11,6 @@ public interface ErrorDialog {
     void setTitle(String title);
     void setMessage(String message);
     void dismiss();
-    void setOnRetryAction(DialogInterface.OnClickListener action);
-    void setOnOkAction(DialogInterface.OnClickListener action);
+    void addOnOkAction(DialogInterface.OnClickListener action);
+    void addOnRetryAction(DialogInterface.OnClickListener action);
 }

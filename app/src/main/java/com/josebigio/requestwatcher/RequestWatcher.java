@@ -6,7 +6,6 @@ import android.util.Log;
 
 import rx.Observable;
 import rx.android.schedulers.AndroidSchedulers;
-import rx.functions.Action0;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
 
@@ -24,13 +23,14 @@ public class RequestWatcher<T>{
     private boolean showErrorAlert;
     private boolean withRetry;
     private ProgressDialog progressDialog;
+    private ErrorDialog errorDialog;
     private Context context;
     private String loadingMessage;
     private ErrorMessageHandler errorMessageHandler;
 
 
     private RequestWatcher(Context activity, boolean showProgress, boolean showErrorAlert,
-                            boolean withRetry, ProgressDialog progressDialog, String loadingMessage,
+                            boolean withRetry, ProgressDialog progressDialog,ErrorDialog errorDialog, String loadingMessage,
                             ErrorMessageHandler errorMessageHandler) {
 
         this.showProgress = showProgress;
@@ -40,6 +40,7 @@ public class RequestWatcher<T>{
         this.context = activity;
         this.loadingMessage = loadingMessage;
         this.errorMessageHandler = errorMessageHandler;
+        this.errorDialog = errorDialog;
     }
     
     public Observable<T> dispatch(Observable<T> networkObservable) {
@@ -51,24 +52,16 @@ public class RequestWatcher<T>{
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .retryWhen(new ErrorHandler())
-                .onErrorResumeNext(new Func1<Throwable, Observable<? extends T>>() {
-                     
-                    public Observable<? extends T> call(Throwable throwable) {
-                        return Observable.error(throwable);
-                    }
-                })
+                .onErrorResumeNext(Observable::error)
                 .doOnSubscribe(() -> {
                     if (showProgress) {
                         Log.d(TAG,"Subscribing, showing progress");
                         progressDialog.show();
                     }
-                }).doOnUnsubscribe(new Action0() {
-                     
-                    public void call() {
-                        if (showProgress) {
-                            Log.d(TAG,"Unsubscribing, hiding progress");
-                            progressDialog.hide();
-                        }
+                }).doOnUnsubscribe(() -> {
+                    if (showProgress) {
+                        Log.d(TAG,"Unsubscribing, hiding progress");
+                        progressDialog.hide();
                     }
                 }).subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.io());
@@ -85,20 +78,19 @@ public class RequestWatcher<T>{
                     .switchMap(new Func1<Throwable, Observable<? extends Boolean>>() {
                          
                         public Observable<? extends Boolean> call(Throwable throwable) {
-                            return Observable.<Boolean>create(
+                            return Observable.create(
                                     subscriber -> {
                                         if(showErrorAlert) {
                                             String errorMessage = errorMessageHandler.getMessage(throwable);
-                                            ErrorDialog errorDialog = new ErrorDialogImpl(context);
                                             errorDialog.setTitle("Error");
                                             errorDialog.setMessage(errorMessage);
                                             if(withRetry) {
-                                                errorDialog.setOnRetryAction((dialogInterface, i) -> {
+                                                errorDialog.addOnRetryAction((dialogInterface, i) -> {
                                                     subscriber.onNext(true);
                                                     subscriber.onCompleted();
                                                 });
                                             }
-                                            errorDialog.setOnOkAction((dialogInterface, i) -> {
+                                            errorDialog.addOnOkAction((dialogInterface, i) -> {
                                                 errorDialog.dismiss();
                                                 subscriber.onError(throwable);
                                             });
@@ -117,100 +109,57 @@ public class RequestWatcher<T>{
 
 
 //    //region Builder
-//    public static class Builder<T> {
-//
-//        private boolean innerShowProgress;
-//        private boolean innerShowErrorAlert;
-//        private boolean innerWithRetry;
-//        private String innerLoadingMessage;
-//        private String innerCustomMessage;
-//        private Context innerContext;
-//        private ErrorMessageHandler innerErrorHandler;
-//        private RSDialogController innerDialogControler;
-//
-//        public Builder(Context activity, RSDialogController dialogController) {
-//            this.innerContext = activity;
-//            this.innerDialogControler = dialogController;
-//            innerErrorHandler = new DefaultErrorMessageHandler(activity);
-//        }
-//
-//
-//        public Builder<T> showProgress(boolean showProgress, String loadingMessage) {
-//            innerShowProgress = showProgress;
-//            innerLoadingMessage = loadingMessage;
-//            return this;
-//        }
-//
-//        public Builder<T> showErrorAlert(boolean show) {
-//            innerShowErrorAlert = show;
-//            return this;
-//        }
-//
-//        public Builder<T> withRetry(boolean retry) {
-//            innerWithRetry = retry;
-//            return this;
-//        }
-//
-//        public Builder<T> withCustomMessage(String customMessage) {
-//            innerCustomMessage = customMessage;
-//            return this;
-//        }
-//
-//        public Builder<T> withErrorMessageHandler(ErrorMessageHandler errorMessageHandler) {
-//            this.innerErrorHandler = errorMessageHandler;
-//            return this;
-//        }
-//
-//
-//        public MRequestWatcher<T> build() {
-//            return new MRequestWatcher<>(innerContext,innerDialogControler, innerShowProgress, innerShowErrorAlert,
-//                    innerWithRetry, innerCustomMessage, innerLoadingMessage,innerErrorHandler);
-//        }
-//
-//
-//    }
-//    //endregion
+    public static class Builder<T> {
 
-    public interface ErrorMessageHandler {
-        String getMessage(Throwable throwable);
-    }
+        private boolean innerShowProgress;
+        private boolean innerShowErrorAlert;
+        private boolean innerWithRetry;
+        private String innerLoadingMessage = "Loading";
+        private Context innerContext;
+        private ErrorMessageHandler innerErrorHandler;
+        private ProgressDialog innerProgressDialog;
+        private ErrorDialog innerErrorDialog;
 
-    private static class DefaultErrorMessageHandler implements ErrorMessageHandler {
-
-        private Context context;
-
-        public DefaultErrorMessageHandler(Context context) {
-            this.context = context;
+    public Builder(Context context) {
+            this.innerContext = context;
+            this.innerProgressDialog = new ProgressDialogImpl(context);
+            this.innerErrorDialog = new ErrorDialogImpl(context);
+            this.innerErrorHandler = new ErrorMessageHandlerImpl(context);
+            this.innerShowProgress = true;
+            this.innerShowErrorAlert = true;
+            this.innerWithRetry = true;
         }
 
 
-        public String getMessage(Throwable throwable) {
-//            String defaultErrorMessage = context.getString(R.string.default_network_error_message);
-//            if(throwable instanceof HttpException) {
-//                HttpException exception = (HttpException)throwable;
-//                Response<?> response = exception.response();
-//                try {
-//                    String errorBody = response.errorBody().string();
-//                    try {
-//                        HashMap<String,Object> map =
-//                                new Gson().fromJson(errorBody
-//                                        , new TypeToken<HashMap<String, Object>>(){}.getType());
-//                        return map.containsKey("message") ? map.get("message").toString() : defaultErrorMessage;
-//                    }
-//                    catch (JsonSyntaxException je) {
-//                        return defaultErrorMessage;
-//                    }
-//
-//                } catch (IOException e) {
-//                    return defaultErrorMessage;
-//                }
-//
-//            }
-//            return defaultErrorMessage;
-//        }
-            return context.getString(R.string.default_network_error_message);
+        public Builder<T> showProgress(boolean showProgress, String loadingMessage) {
+            innerShowProgress = showProgress;
+            innerLoadingMessage = loadingMessage;
+            return this;
+        }
+
+        public Builder<T> showErrorAlert(boolean show) {
+            innerShowErrorAlert = show;
+            return this;
+        }
+
+        public Builder<T> withRetry(boolean retry) {
+            innerWithRetry = retry;
+            return this;
+        }
+
+
+        public Builder<T> withErrorMessageHandler(ErrorMessageHandler errorMessageHandler) {
+            this.innerErrorHandler = errorMessageHandler;
+            return this;
+        }
+
+
+        public RequestWatcher<T> build() {
+            return new RequestWatcher<T>(innerContext,innerShowProgress,innerShowErrorAlert,innerWithRetry,innerProgressDialog,innerErrorDialog,innerLoadingMessage,innerErrorHandler);
         }
 
 
     }
+    //end region
+
 }

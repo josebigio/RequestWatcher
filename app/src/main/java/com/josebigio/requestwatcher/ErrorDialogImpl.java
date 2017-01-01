@@ -3,6 +3,8 @@ package com.josebigio.requestwatcher;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.os.Handler;
+import android.os.Looper;
 
 /**
  * <h1>ErrorDialogImpl</h1>
@@ -13,23 +15,22 @@ public class ErrorDialogImpl implements ErrorDialog {
     private AlertDialog alertDialog;
     private DialogInterface.OnClickListener retryAction;
     private DialogInterface.OnClickListener okAction;
+    private Handler handler = new Handler(Looper.getMainLooper());
 
     public ErrorDialogImpl(Context context) {
         this.context = context;
         alertDialog = new AlertDialog.Builder(context)
                 .setTitle("Delete entry")
                 .setMessage("Are you sure you want to delete this entry?")
-                .setPositiveButton(android.R.string.yes, this::doOk)
-                .setNegativeButton(android.R.string.no, this::doRetryAction)
                 .setIcon(android.R.drawable.ic_dialog_alert)
-                .show();
+                .create();
     }
 
 
 
     @Override
     public void show() {
-        alertDialog.show();
+        handler.post(()->alertDialog.show());
     }
 
     @Override
@@ -44,24 +45,17 @@ public class ErrorDialogImpl implements ErrorDialog {
 
     @Override
     public void dismiss() {
-        alertDialog.dismiss();
+        handler.post(()->alertDialog.dismiss());
     }
 
     @Override
-    public void setOnRetryAction(DialogInterface.OnClickListener action) {
-        this.retryAction = action;
+    public void addOnRetryAction(DialogInterface.OnClickListener action) {
+        alertDialog.setButton(DialogInterface.BUTTON_POSITIVE,"Retry",action);
     }
 
     @Override
-    public void setOnOkAction(DialogInterface.OnClickListener action) {
-        this.okAction = action;
+    public void addOnOkAction(DialogInterface.OnClickListener action) {
+        alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE,"Ok",action);
     }
 
-    private void doOk(DialogInterface dialogInterface, int i) {
-        okAction.onClick(dialogInterface,i);
-    }
-
-    private void doRetryAction(DialogInterface dialogInterface, int i) {
-        retryAction.onClick(dialogInterface,i);
-    }
 }
