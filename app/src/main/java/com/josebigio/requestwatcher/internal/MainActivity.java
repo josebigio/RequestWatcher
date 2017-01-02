@@ -1,10 +1,12 @@
-package com.josebigio.requestwatcher;
+package com.josebigio.requestwatcher.internal;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
+
+import com.josebigio.requestwatcher.R;
+import com.josebigio.requestwatcher.RequestWatcher;
 
 import retrofit2.adapter.rxjava.HttpException;
 import rx.Observable;
@@ -33,9 +35,9 @@ public class MainActivity extends AppCompatActivity {
     private void makeRequest() {
         String username = "josebigio";
         Observable<User> call = apiService.getUser(username);
-        RequestWatcher<User> requestWatcher = new RequestWatcher.Builder<User>(this).withRetry(true).build();
+        RequestWatcher<User> requestWatcher = new RequestWatcher.Builder<User>(this).build();
         Subscription subscription = requestWatcher.dispatch(call)
-                .subscribeOn(Schedulers.io()) // optional if you do not wish to override the default behavior
+                .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread()).subscribe(new Subscriber<User>() {
                     @Override
                     public void onCompleted() {
@@ -45,11 +47,10 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onError(Throwable e) {
                         // cast to retrofit.HttpException to get the response code
-                        Log.d(TAG,String.format("Error: %s",e));
+                        Toast.makeText(MainActivity.this,"Error",Toast.LENGTH_LONG).show();
                         if (e instanceof HttpException) {
                             HttpException response = (HttpException)e;
                             int code = response.code();
-                            Toast.makeText(MainActivity.this,"Error",Toast.LENGTH_LONG).show();
                         }
                     }
 

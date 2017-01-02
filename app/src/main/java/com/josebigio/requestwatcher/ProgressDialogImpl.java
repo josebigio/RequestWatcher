@@ -16,6 +16,8 @@ public class ProgressDialogImpl implements ProgressDialog {
     public ProgressDialogImpl(Context context) {
         this.context = context;
         progressDialog = new android.app.ProgressDialog(context);
+        progressDialog.setCancelable(false);
+        progressDialog.setCanceledOnTouchOutside(false);
     }
 
     @Override

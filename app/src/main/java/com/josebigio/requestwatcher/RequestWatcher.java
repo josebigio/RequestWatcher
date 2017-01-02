@@ -5,9 +5,7 @@ import android.content.Context;
 import android.util.Log;
 
 import rx.Observable;
-import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Func1;
-import rx.schedulers.Schedulers;
 
 /**
  * <h1>RequestWatcher</h1>
@@ -49,8 +47,6 @@ public class RequestWatcher<T>{
         }
 
         return networkObservable
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
                 .retryWhen(new ErrorHandler())
                 .onErrorResumeNext(Observable::error)
                 .doOnSubscribe(() -> {
@@ -63,8 +59,7 @@ public class RequestWatcher<T>{
                         Log.d(TAG,"Unsubscribing, hiding progress");
                         progressDialog.hide();
                     }
-                }).subscribeOn(Schedulers.io())
-                .observeOn(Schedulers.io());
+                });
     }
 
 
@@ -131,8 +126,22 @@ public class RequestWatcher<T>{
         }
 
 
-        public Builder<T> showProgress(boolean showProgress, String loadingMessage) {
+        public Builder<T> showProgress(boolean showProgress) {
             innerShowProgress = showProgress;
+            return this;
+        }
+
+        public Builder<T> withProgressDialog(ProgressDialog progressDialog) {
+            innerProgressDialog = progressDialog;
+            return this;
+        }
+
+        public Builder<T> withErrorDialog(ErrorDialog errorDialog) {
+            innerErrorDialog = errorDialog;
+            return this;
+        }
+
+        public Builder<T> setLoadingMessage(String loadingMessage) {
             innerLoadingMessage = loadingMessage;
             return this;
         }

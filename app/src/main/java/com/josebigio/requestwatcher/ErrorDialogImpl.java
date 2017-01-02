@@ -24,6 +24,8 @@ public class ErrorDialogImpl implements ErrorDialog {
                 .setMessage("Are you sure you want to delete this entry?")
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .create();
+        alertDialog.setCanceledOnTouchOutside(false);
+        alertDialog.setCancelable(false);
     }
 
 

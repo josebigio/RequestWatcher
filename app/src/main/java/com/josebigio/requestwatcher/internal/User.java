@@ -1,4 +1,4 @@
-package com.josebigio.requestwatcher;
+package com.josebigio.requestwatcher.internal;
 
 import com.google.gson.annotations.Expose;
 import com.google.gson.annotations.SerializedName;

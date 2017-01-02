@@ -1,6 +1,4 @@
-package com.josebigio.requestwatcher;
-
-import android.util.Log;
+package com.josebigio.requestwatcher.internal;
 
 import java.util.concurrent.TimeUnit;
 
@@ -33,15 +31,17 @@ public class ApiService {
 
 
     public Observable<User> getUser(String userName) {
-        TIMES++;
-        if(TIMES%2 == 0) {
-            Log.d(TAG,String.format("sending fake"));
-            return api.getUser("NOPE" + userName).delay(DELAY, TimeUnit.MILLISECONDS);
-        }
-        else {
-            Log.d(TAG,String.format("sending real"));
-            return api.getUser(userName).delay(DELAY, TimeUnit.MILLISECONDS);
-        }
+        return api.getUser(userName).delay(DELAY, TimeUnit.MILLISECONDS);
+
+//        TIMES++;
+//        if(TIMES%2 == 0) {
+//            Log.d(TAG,String.format("sending fake"));
+//            return api.getUser("NOPE" + userName).delay(DELAY, TimeUnit.MILLISECONDS);
+//        }
+//        else {
+//            Log.d(TAG,String.format("sending real"));
+//            return api.getUser(userName).delay(DELAY, TimeUnit.MILLISECONDS);
+//        }
     }
 
 

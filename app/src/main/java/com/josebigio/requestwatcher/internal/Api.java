@@ -1,4 +1,4 @@
-package com.josebigio.requestwatcher;
+package com.josebigio.requestwatcher.internal;
 
 import java.util.List;
 
